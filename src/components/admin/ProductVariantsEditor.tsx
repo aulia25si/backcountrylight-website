@@ -17,6 +17,7 @@ export type ProductVariant = {
   price: string;
   stock: string;
   sku: string;
+  imageUrl?: string;
 };
 
 interface ProductVariantsEditorProps {
@@ -25,9 +26,10 @@ interface ProductVariantsEditorProps {
   variants: ProductVariant[];
   setVariants: (variants: ProductVariant[]) => void;
   basePrice: number;
+  availableImages?: { id: string; url: string; label: string }[];
 }
 
-export function ProductVariantsEditor({ options, setOptions, variants, setVariants, basePrice }: ProductVariantsEditorProps) {
+export function ProductVariantsEditor({ options, setOptions, variants, setVariants, basePrice, availableImages }: ProductVariantsEditorProps) {
   const [hasVariants, setHasVariants] = useState(options.length > 0);
 
   // When options change, generate new variants matrix
@@ -73,6 +75,7 @@ export function ProductVariantsEditor({ options, setOptions, variants, setVarian
         price: "", // empty means fallback to base price
         stock: "0",
         sku: "",
+        imageUrl: "",
       };
     });
     
@@ -164,6 +167,7 @@ export function ProductVariantsEditor({ options, setOptions, variants, setVarian
                   <thead className="bg-zinc-50 text-zinc-500 border-b">
                     <tr>
                       <th className="px-4 py-3 font-medium whitespace-nowrap">Variant</th>
+                      <th className="px-4 py-3 font-medium whitespace-nowrap">Image URL</th>
                       <th className="px-4 py-3 font-medium whitespace-nowrap">Price (IDR)</th>
                       <th className="px-4 py-3 font-medium whitespace-nowrap">Stock</th>
                       <th className="px-4 py-3 font-medium whitespace-nowrap">SKU</th>
@@ -180,6 +184,22 @@ export function ProductVariantsEditor({ options, setOptions, variants, setVarian
                               </span>
                             ))}
                           </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            value={v.imageUrl || ""}
+                            onChange={(e) => {
+                              const newVariants = [...variants];
+                              newVariants[i] = { ...newVariants[i], imageUrl: e.target.value };
+                              setVariants(newVariants);
+                            }}
+                            className="flex h-8 w-40 rounded-md border border-zinc-200 bg-white px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <option value="">No Image</option>
+                            {availableImages?.map(img => (
+                              <option key={img.id} value={img.id}>{img.label}</option>
+                            ))}
+                          </select>
                         </td>
                         <td className="px-4 py-3">
                           <Input 

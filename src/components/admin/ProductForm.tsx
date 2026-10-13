@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,14 +57,37 @@ export function ProductForm({ categories, brands, initialData }: ProductFormProp
   const [options, setOptions] = useState<ProductOption[]>(
     initialData?.options?.map(opt => ({ name: opt.name, values: opt.values })) || []
   );
+  const getIdFromUrl = (url: string | null | undefined) => {
+    if (!url) return "";
+    if (url === initialData?.image) return "main";
+    const existingIndex = (initialData?.images || []).indexOf(url);
+    if (existingIndex !== -1) return `existing-${existingIndex}`;
+    return url;
+  };
+
   const [variants, setVariants] = useState<ProductVariant[]>(
     initialData?.variants?.map(v => ({
       options: v.options,
       price: v.price?.toString() || "",
       stock: v.stock?.toString() || "0",
       sku: v.sku || "",
+      imageUrl: getIdFromUrl(v.imageUrl),
     })) || []
   );
+
+  const availableImages = useMemo(() => {
+    const images = [];
+    if (preview) {
+      images.push({ id: "main", url: preview, label: "Main Image" });
+    }
+    existingDetailedImages.forEach((url, i) => {
+      images.push({ id: `existing-${i}`, url, label: `Image ${i + 1}` });
+    });
+    detailedPreviews.forEach((url, i) => {
+      images.push({ id: `new-${i}`, url, label: `New Image ${i + 1}` });
+    });
+    return images;
+  }, [preview, existingDetailedImages, detailedPreviews]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -160,16 +183,26 @@ export function ProductForm({ categories, brands, initialData }: ProductFormProp
       if (options.length > 0) {
         formData.append("options", JSON.stringify(options.filter(o => o.name && o.values.length > 0)));
       }
+      
+      const urlMap: Record<string, string> = {
+        "main": file ? formData.get("image") as string : (initialData?.image || ""),
+      };
+      existingDetailedImages.forEach((url, i) => { urlMap[`existing-${i}`] = url; });
+      newUrls.forEach((url, i) => { urlMap[`new-${i}`] = url; });
+
       if (variants.length > 0) {
-        // ensure stock and price are numeric before sending if possible, but our action uses the strings as well. Actually, action expects numeric? 
-        // Let's pass as is, the action handles it as any or string, wait action uses v.price and v.stock.
-        // Action: stock: v.stock || 0 (if it's string, we need to parse it in action, or parse here)
-        // Let's parse here to be safe.
-        const parsedVariants = variants.map(v => ({
-          ...v,
-          price: v.price ? parseInt(v.price, 10) : null,
-          stock: parseInt(v.stock, 10) || 0,
-        }));
+        const parsedVariants = variants.map(v => {
+          let realImageUrl = v.imageUrl;
+          if (v.imageUrl && urlMap[v.imageUrl]) {
+            realImageUrl = urlMap[v.imageUrl];
+          }
+          return {
+            ...v,
+            price: v.price ? parseInt(v.price, 10) : null,
+            stock: parseInt(v.stock, 10) || 0,
+            imageUrl: realImageUrl,
+          };
+        });
         formData.append("variants", JSON.stringify(parsedVariants));
       }
 
@@ -254,6 +287,7 @@ export function ProductForm({ categories, brands, initialData }: ProductFormProp
             variants={variants} 
             setVariants={setVariants} 
             basePrice={basePrice}
+            availableImages={availableImages}
           />
 
           {/* Product Images Card */}

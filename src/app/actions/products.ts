@@ -62,6 +62,7 @@ export async function createProduct(formData: FormData) {
             price: v.price ? parseInt(v.price, 10) : null,
             stock: v.stock ? parseInt(v.stock, 10) : 0,
             options: v.options,
+            imageUrl: v.imageUrl || null,
           }))
         } : undefined,
       },
@@ -131,6 +132,7 @@ export async function updateProduct(id: string, formData: FormData) {
         price: v.price ? parseInt(v.price, 10) : null,
         stock: v.stock ? parseInt(v.stock, 10) : 0,
         options: v.options,
+        imageUrl: v.imageUrl || null,
       }))
     },
   };

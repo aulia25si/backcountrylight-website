@@ -186,6 +186,7 @@ model ProductVariant {
   price       Int?
   stock       Int      @default(0)
   options     Json
+  imageUrl    String?
   
   orderItems  OrderItem[]
 }

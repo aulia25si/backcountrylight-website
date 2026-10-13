@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { formatRupiah } from "@/lib/utils";
 import { AddToCartButton } from "@/components/shared/AddToCartButton";
 
@@ -17,6 +17,7 @@ interface ProductVariant {
   price: number | null;
   stock: number;
   options: any; // JSON
+  imageUrl?: string | null;
 }
 
 interface ProductVariantSelectorProps {
@@ -50,6 +51,12 @@ export function ProductVariantSelector({ product }: ProductVariantSelectorProps)
       return Object.keys(selectedOptions).every(k => vOpts[k] === selectedOptions[k]);
     });
   }, [selectedOptions, product.variants]);
+
+  useEffect(() => {
+    if (activeVariant?.imageUrl) {
+      window.dispatchEvent(new CustomEvent('variantImageChange', { detail: activeVariant.imageUrl }));
+    }
+  }, [activeVariant]);
 
   const displayPrice = activeVariant?.price ?? product.price;
   const displayStock = activeVariant ? activeVariant.stock : product.stock;

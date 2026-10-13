@@ -1,9 +1,20 @@
 "use client";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function ProductGallery({ images }: { images: string[] }) {
   const [mainImage, setMainImage] = useState(images[0]);
+
+  useEffect(() => {
+    const handleVariantImageChange = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      if (customEvent.detail) {
+        setMainImage(customEvent.detail);
+      }
+    };
+    window.addEventListener('variantImageChange', handleVariantImageChange);
+    return () => window.removeEventListener('variantImageChange', handleVariantImageChange);
+  }, []);
 
   return (
     <div className="flex flex-col gap-4">
