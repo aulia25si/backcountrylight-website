@@ -7,7 +7,10 @@ import { toast } from "sonner";
 
 interface AddToCartButtonProps {
   product: {
-    id: string;
+    id?: string;
+    productId: string;
+    variantId?: string | null;
+    variantName?: string | null;
     name: string;
     price: number;
     image: string | null;
@@ -21,6 +24,9 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
   const handleAddToCart = () => {
     addItem({
       id: product.id,
+      productId: product.productId,
+      variantId: product.variantId || null,
+      variantName: product.variantName || null,
       name: product.name,
       price: product.price,
       image: product.image,
@@ -28,8 +34,9 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
       quantity: 1,
     });
     
+    const displayLabel = product.variantName ? `${product.name} (${product.variantName})` : product.name;
     toast.success("Added to cart", {
-      description: `${product.name} has been added to your cart.`,
+      description: `${displayLabel} has been added to your cart.`,
     });
     
     openCart();

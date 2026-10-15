@@ -58,8 +58,10 @@ export function ProductVariantSelector({ product }: ProductVariantSelectorProps)
     }
   }, [activeVariant]);
 
+  const hasVariants = product.variants.length > 0;
+  const isCombinationAvailable = !hasVariants || !!activeVariant;
   const displayPrice = activeVariant?.price ?? product.price;
-  const displayStock = activeVariant ? activeVariant.stock : product.stock;
+  const displayStock = hasVariants ? (activeVariant ? activeVariant.stock : 0) : product.stock;
   
   // Format variant name to show in cart
   const variantName = activeVariant ? Object.values(selectedOptions).join(" / ") : "";
@@ -100,18 +102,27 @@ export function ProductVariantSelector({ product }: ProductVariantSelectorProps)
         </div>
       )}
 
+      {hasVariants && !activeVariant && (
+        <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-md mb-6">
+          Kombinasi pilihan varian ini saat ini tidak tersedia. Silakan pilih opsi lain.
+        </div>
+      )}
+
       <div className="space-y-4 mb-10">
         <AddToCartButton 
           product={{
-            id: activeVariant ? `${product.id}-${activeVariant.id}` : product.id,
-            name: activeVariant ? `${product.name} - ${variantName}` : product.name,
+            id: activeVariant ? `${product.id}:${activeVariant.id}` : product.id,
+            productId: product.id,
+            variantId: activeVariant ? activeVariant.id : null,
+            variantName: activeVariant ? variantName : null,
+            name: product.name,
             price: displayPrice,
-            image: product.image,
-            stock: displayStock,
+            image: activeVariant?.imageUrl || product.image,
+            stock: isCombinationAvailable ? displayStock : 0,
           }} 
         />
-        {displayStock > 0 && displayStock < 10 && (
-          <p className="text-sm text-destructive">Sisa stok {displayStock} tersisa!</p>
+        {isCombinationAvailable && displayStock > 0 && displayStock < 10 && (
+          <p className="text-sm text-destructive font-medium">Tersisa {displayStock} item!</p>
         )}
       </div>
     </div>

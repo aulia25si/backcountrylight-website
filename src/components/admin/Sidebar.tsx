@@ -22,7 +22,7 @@ const navigation = [
   { name: "Products", href: "/admin/products", icon: Package },
   { name: "Categories", href: "/admin/categories", icon: LayoutList },
   { name: "Brands", href: "/admin/brands", icon: Tags },
-  { name: "Orders", href: "/admin/orders", icon: ShoppingCart, disabled: true },
+  { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { name: "Customers", href: "/admin/users", icon: Users },
   { name: "Contact Messages", href: "/admin/messages", icon: MessageSquare, disabled: true },
   { name: "Referral Codes", href: "/admin/referrals", icon: Ticket, disabled: true },

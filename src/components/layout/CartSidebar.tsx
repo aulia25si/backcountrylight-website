@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/useCartStore";
 import Image from "next/image";
+import { formatRupiah } from "@/lib/utils";
 
 export function CartSidebar() {
   const { items, removeItem, updateQuantity, getTotalItems, getTotalPrice, isOpen, setIsOpen } = useCartStore();
@@ -44,7 +45,7 @@ export function CartSidebar() {
             <p className="text-muted-foreground text-sm max-w-[250px]">
               Looks like you haven't added any ultralight gear to your cart yet.
             </p>
-            <Button variant="outline" className="mt-4 rounded-none" render={<Link href="/shop" />}>
+            <Button variant="outline" className="mt-4 rounded-none" render={<Link href="/shop" onClick={() => setIsOpen(false)} />}>
               Start Shopping
             </Button>
           </div>
@@ -72,10 +73,16 @@ export function CartSidebar() {
                   
                   <div className="flex flex-1 flex-col justify-between">
                     <div className="flex justify-between items-start gap-2">
-                      <h4 className="font-medium text-sm line-clamp-2 leading-snug">{item.name}</h4>
+                      <div>
+                        <h4 className="font-medium text-sm line-clamp-2 leading-snug">{item.name}</h4>
+                        {item.variantName && (
+                          <span className="text-xs text-muted-foreground block mt-0.5">{item.variantName}</span>
+                        )}
+                      </div>
                       <button 
                         onClick={() => removeItem(item.id)}
                         className="text-muted-foreground hover:text-foreground transition-colors p-1 -mr-1"
+                        aria-label={`Remove ${item.name}`}
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -93,13 +100,13 @@ export function CartSidebar() {
                         <span className="text-xs font-medium w-6 text-center">{item.quantity}</span>
                         <button 
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          disabled={item.quantity >= item.stock}
+                          disabled={item.stock > 0 ? item.quantity >= item.stock : false}
                           className="px-2 py-1 text-muted-foreground hover:text-foreground disabled:opacity-50"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
-                      <p className="font-medium text-sm">Rp {(item.price * item.quantity).toLocaleString('id-ID')}</p>
+                      <p className="font-medium text-sm">{formatRupiah(item.price * item.quantity)}</p>
                     </div>
                   </div>
                 </div>
@@ -113,12 +120,17 @@ export function CartSidebar() {
           <div className="p-6 pt-4 border-t border-border mt-auto bg-background">
             <div className="flex justify-between items-center mb-4">
               <span className="font-medium">Subtotal</span>
-              <span className="font-heading font-medium text-lg">Rp {totalPrice.toLocaleString('id-ID')}</span>
+              <span className="font-heading font-medium text-lg">{formatRupiah(totalPrice)}</span>
             </div>
-            <p className="text-xs text-muted-foreground mb-4">Shipping and taxes calculated at checkout.</p>
-            <Button size="lg" className="w-full rounded-none h-14 text-base bg-foreground text-background hover:bg-foreground/90" render={<Link href="/checkout" />}>
-              Go to Checkout
-            </Button>
+            <p className="text-xs text-muted-foreground mb-4">Pengiriman dihitung saat checkout (Flat Rp 25.000).</p>
+            <div className="flex flex-col gap-2">
+              <Button size="lg" className="w-full rounded-none h-14 text-base bg-foreground text-background hover:bg-foreground/90" render={<Link href="/checkout" onClick={() => setIsOpen(false)} />}>
+                Go to Checkout
+              </Button>
+              <Button variant="outline" className="w-full rounded-none h-10 text-sm" render={<Link href="/cart" onClick={() => setIsOpen(false)} />}>
+                View Cart Page
+              </Button>
+            </div>
           </div>
         )}
       </SheetContent>

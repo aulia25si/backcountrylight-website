@@ -3,8 +3,24 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+async function verifyStaffSession() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || (session.user.role !== "ADMIN" && session.user.role !== "STAFF")) {
+    throw new Error("Akses ditolak. Operasi ini membutuhkan hak akses Admin atau Staf.");
+  }
+  return session;
+}
 
 export async function createBrand(formData: FormData) {
+  try {
+    await verifyStaffSession();
+  } catch (err: any) {
+    return { error: err.message };
+  }
+
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const slug = name.toLowerCase().replace(/[\s_]+/g, "-").replace(/[^\w-]+/g, "");
@@ -28,6 +44,12 @@ export async function createBrand(formData: FormData) {
 }
 
 export async function updateBrand(id: string, formData: FormData) {
+  try {
+    await verifyStaffSession();
+  } catch (err: any) {
+    return { error: err.message };
+  }
+
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   
@@ -54,12 +76,13 @@ export async function updateBrand(id: string, formData: FormData) {
 
 export async function deleteBrand(id: string) {
   try {
+    await verifyStaffSession();
     await prisma.brand.delete({
       where: { id },
     });
     revalidatePath("/admin/brands");
     return { success: true };
-  } catch (error) {
-    return { error: "Failed to delete brand. It might be linked to products." };
+  } catch (error: any) {
+    return { error: error.message || "Failed to delete brand. It might be linked to products." };
   }
 }

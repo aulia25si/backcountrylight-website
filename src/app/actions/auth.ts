@@ -15,24 +15,25 @@ export async function registerUser(prevState: any, formData: FormData) {
   const password = formData.get("password") as string;
 
   if (!firstName || !lastName || !email || !password) {
-    return { error: "All fields are required" };
+    return { error: "Semua kolom wajib diisi." };
   }
 
-  // Check if user exists
+  // Cek apakah email sudah terdaftar
   const existingUser = await prisma.user.findUnique({
     where: { email },
   });
 
   if (existingUser) {
-    return { error: "Email is already registered" };
+    return { error: "Email sudah terdaftar. Silakan login atau gunakan email lain." };
   }
 
   // Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Create user
+  let createdUserId: string | null = null;
+
   try {
-    await prisma.user.create({
+    const newUser = await prisma.user.create({
       data: {
         name: `${firstName} ${lastName}`,
         email,
@@ -40,10 +41,11 @@ export async function registerUser(prevState: any, formData: FormData) {
         role: "USER",
       },
     });
+    createdUserId = newUser.id;
 
     // Generate Verification Token
     const token = uuidv4();
-    const expires = new Date(new Date().getTime() + 1000 * 60 * 60 * 24); // 24 hours
+    const expires = new Date(new Date().getTime() + 1000 * 60 * 60 * 24); // 24 jam
 
     await prisma.verificationToken.create({
       data: {
@@ -53,19 +55,24 @@ export async function registerUser(prevState: any, formData: FormData) {
       },
     });
 
-    // Send Verification Email
+    // Kirim Email Verifikasi
     const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/verify?token=${token}&email=${email}`;
 
     await resend.emails.send({
-      from: "noreply@bclrental.co.id",
+      from: process.env.RESEND_FROM_EMAIL || "noreply@bclrental.co.id",
       to: email,
       subject: "Verify your email address - Backcountrylight",
       html: `<p>Hi ${firstName},</p><p>Welcome to Backcountrylight! Please click the link below to verify your email address:</p><p><a href="${verificationUrl}">Verify Email</a></p>`,
     });
 
   } catch (error) {
+    // Rollback akun jika pengiriman email gagal agar user tidak terkunci permanen
+    if (createdUserId) {
+      await prisma.user.delete({ where: { id: createdUserId } }).catch(() => {});
+      await prisma.verificationToken.deleteMany({ where: { identifier: email } }).catch(() => {});
+    }
     console.error("Failed to register user:", error);
-    return { error: "Failed to create account. Please try again." };
+    return { error: "Gagal membuat akun atau mengirim email verifikasi. Silakan coba lagi." };
   }
 
   redirect("/login?registered=true&verify=true");

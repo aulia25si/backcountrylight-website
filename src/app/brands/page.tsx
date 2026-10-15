@@ -48,7 +48,7 @@ export default function BrandsPage() {
           {BRANDS.map((brand) => (
             <Link 
               key={brand.name} 
-              href={`/shop?brand=${brand.name.toLowerCase().replace(" ", "-")}`}
+              href={`/shop?brand=${brand.name.toLowerCase().replace(/\s+/g, "-")}`}
               className="group flex flex-col items-center text-center p-10 bg-muted/30 border border-border hover:bg-muted/50 transition-colors"
             >
               <div className="h-20 w-full flex items-center justify-center mb-6 relative">

@@ -3,7 +3,9 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { PackageX } from "lucide-react";
+import Image from "next/image";
+import { PackageX, ExternalLink, Clock, PackageCheck, Truck, CheckCircle, XCircle } from "lucide-react";
+import { formatRupiah } from "@/lib/utils";
 
 export const metadata = {
   title: "My Orders | Backcountry Light",
@@ -15,22 +17,65 @@ export default async function AccountPage() {
   
   if (!session) return null;
 
-  // Fetch orders from database (we will implement the actual creation later during Checkout phase)
   const orders = await prisma.order.findMany({
     where: { userId: session.user.id },
     include: {
       items: {
-        include: { product: true }
+        include: { 
+          product: true,
+          variant: true,
+        }
       }
     },
     orderBy: { createdAt: 'desc' }
   });
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return {
+          label: "Menunggu Pembayaran",
+          className: "bg-amber-100 text-amber-800 border-amber-300",
+          icon: Clock,
+        };
+      case "PROCESSING":
+        return {
+          label: "Pembayaran Terverifikasi",
+          className: "bg-blue-100 text-blue-800 border-blue-300",
+          icon: PackageCheck,
+        };
+      case "SHIPPED":
+        return {
+          label: "Dalam Pengiriman",
+          className: "bg-purple-100 text-purple-800 border-purple-300",
+          icon: Truck,
+        };
+      case "DELIVERED":
+        return {
+          label: "Selesai",
+          className: "bg-emerald-100 text-emerald-800 border-emerald-300",
+          icon: CheckCircle,
+        };
+      case "CANCELLED":
+        return {
+          label: "Dibatalkan",
+          className: "bg-red-100 text-red-800 border-red-300",
+          icon: XCircle,
+        };
+      default:
+        return {
+          label: status,
+          className: "bg-zinc-100 text-zinc-800 border-zinc-200",
+          icon: Clock,
+        };
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-heading font-semibold tracking-tight">My Orders</h1>
-        <p className="text-muted-foreground text-sm mt-1">View and track your recent orders.</p>
+        <h1 className="text-2xl font-heading font-semibold tracking-tight">Riwayat Pesanan</h1>
+        <p className="text-muted-foreground text-sm mt-1">Pantau status transaksi dan instruksi pembayaran Anda.</p>
       </div>
 
       {orders.length === 0 ? (
@@ -38,61 +83,105 @@ export default async function AccountPage() {
           <div className="bg-muted h-12 w-12 rounded-full flex items-center justify-center mb-4">
             <PackageX className="h-6 w-6 text-muted-foreground" />
           </div>
-          <h2 className="text-lg font-medium mb-2">No orders yet</h2>
+          <h2 className="text-lg font-medium mb-2">Belum ada pesanan</h2>
           <p className="text-muted-foreground text-sm max-w-sm mb-6">
-            You haven't placed any orders yet. Start exploring our premium ultralight gear collection!
+            Anda belum memiliki riwayat pesanan. Jelajahi katalog perlengkapan outdoor ultralight kami!
           </p>
           <Button render={<Link href="/shop" />}>
-            Browse Shop
+            Mulai Belanja
           </Button>
         </div>
       ) : (
-        <div className="space-y-4">
-          {orders.map((order) => (
-            <div key={order.id} className="border rounded-lg p-6">
-              <div className="flex flex-wrap gap-4 items-center justify-between border-b pb-4 mb-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Order ID</p>
-                  <p className="font-medium text-sm font-mono">{order.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Date</p>
-                  <p className="font-medium text-sm">
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total</p>
-                  <p className="font-medium text-sm">
-                    Rp {order.totalAmount.toLocaleString('id-ID')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Status</p>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    {order.status}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                {order.items.map((item) => (
-                  <div key={item.id} className="flex gap-4 items-center">
-                    <div className="h-16 w-16 bg-muted rounded overflow-hidden flex-shrink-0">
-                      <img src={item.product.image} alt={item.product.name} className="h-full w-full object-cover" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{item.product.name}</p>
-                      <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-                    </div>
-                    <div className="text-right whitespace-nowrap">
-                      <p className="font-medium text-sm">Rp {(item.price * item.quantity).toLocaleString('id-ID')}</p>
-                    </div>
+        <div className="space-y-5">
+          {orders.map((order) => {
+            const statusConfig = getStatusBadge(order.status);
+            const StatusIcon = statusConfig.icon;
+
+            return (
+              <div key={order.id} className="border rounded-lg p-6 bg-card shadow-sm">
+                <div className="flex flex-wrap gap-4 items-center justify-between border-b pb-4 mb-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Order ID</p>
+                    <p className="font-semibold text-sm font-mono">{order.id}</p>
                   </div>
-                ))}
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Tanggal</p>
+                    <p className="font-medium text-sm">
+                      {new Date(order.createdAt).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total</p>
+                    <p className="font-semibold text-sm">
+                      {formatRupiah(order.totalAmount)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Status</p>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${statusConfig.className}`}>
+                      <StatusIcon className="h-3.5 w-3.5" />
+                      {statusConfig.label}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Items preview */}
+                <div className="space-y-3 mb-5">
+                  {order.items.map((item) => (
+                    <div key={item.id} className="flex gap-4 items-center">
+                      <div className="relative h-14 w-14 bg-muted rounded overflow-hidden flex-shrink-0 border">
+                        {item.variant?.imageUrl || item.product?.image ? (
+                          <Image 
+                            src={item.variant?.imageUrl || item.product?.image || ""} 
+                            alt={item.product?.name || "Gear"} 
+                            fill 
+                            className="object-cover" 
+                            sizes="56px" 
+                          />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center bg-muted text-xs text-muted-foreground">
+                            Gear
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{item.product?.name || "Produk"}</p>
+                        {item.variant?.name && (
+                          <p className="text-xs text-primary font-medium">Varian: {item.variant.name}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">Jumlah: {item.quantity}</p>
+                      </div>
+                      <div className="text-right whitespace-nowrap">
+                        <p className="font-medium text-sm">{formatRupiah(item.price * item.quantity)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Card Action Link */}
+                <div className="border-t pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    {order.status === "PENDING" 
+                      ? "Menunggu pembayaran manual via transfer bank." 
+                      : "Pembayaran telah dicatat dalam sistem BCL."}
+                  </p>
+                  <Button 
+                    variant={order.status === "PENDING" ? "default" : "outline"} 
+                    size="sm"
+                    className="h-9 px-4 text-xs font-medium"
+                    render={<Link href={`/orders/${order.id}`} />}
+                  >
+                    <span>{order.status === "PENDING" ? "Lihat Instruksi Pembayaran" : "Rincian Pesanan"}</span>
+                    <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
