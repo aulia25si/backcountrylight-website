@@ -123,16 +123,42 @@ model Product {
 }
 
 model Order {
-  id            String      @id @default(cuid())
-  userId        String
-  user          User        @relation(fields: [userId], references: [id])
-  status        OrderStatus @default(PENDING)
-  totalAmount   Int
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  status          OrderStatus   @default(PENDING)
+  totalAmount     Int
   shippingAddress Json?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  items         OrderItem[]
+  // Payment Status & Method
+  paymentStatus   PaymentStatus @default(UNPAID)
+  paymentMethod   String        @default("MANUAL_BANK_TRANSFER")
+  paidAt          DateTime?
+
+  // Courier & Tracking (Dummy/Editable di Admin)
+  courier         String?       @default("jne")
+  courierService  String?       @default("REG")
+  trackingNumber  String?
+
+  // Manual Transfer & Payment Proof Details
+  paymentProofUrl String?
+  senderName      String?
+  senderBank      String?
+  transferAmount  Int?
+  transferDate    DateTime?
+  verifiedAt      DateTime?
+  verifiedBy      String?
+
+  items           OrderItem[]
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING_VERIFICATION
+  PAID
+  REJECTED
 }
 
 model OrderItem {

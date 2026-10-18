@@ -20,6 +20,7 @@ import {
   CheckCircle,
   XCircle
 } from "lucide-react";
+import { PaymentProofSection } from "@/components/customer/PaymentProofSection";
 
 export const metadata = {
   title: "Konfirmasi Pesanan | Backcountry Light",
@@ -231,6 +232,42 @@ export default async function OrderDetailPage({
               </div>
             </div>
           )}
+
+          {/* Kartu Status Pengiriman & Nomor Resi (Jika Tersedia) */}
+          {order.trackingNumber && (
+            <div className="border border-purple-200 bg-purple-50/50 rounded-xl p-5 flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700">
+                  <Truck className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-purple-900 uppercase">
+                    Kurir: {order.courier?.toUpperCase() || "JNE"} {order.courierService && `(${order.courierService})`}
+                  </p>
+                  <p className="font-mono text-sm font-bold text-zinc-900 mt-0.5">
+                    No. Resi: <span className="text-purple-700">{order.trackingNumber}</span>
+                  </p>
+                </div>
+              </div>
+              <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-purple-200/60 text-purple-800">
+                Dalam Pengiriman
+              </span>
+            </div>
+          )}
+
+          {/* Form / Status Bukti Transfer Pembayaran */}
+          <PaymentProofSection
+            orderId={order.id}
+            orderTotal={order.totalAmount}
+            paymentStatus={order.paymentStatus}
+            paymentProofUrl={order.paymentProofUrl}
+            senderName={order.senderName}
+            senderBank={order.senderBank}
+            transferAmount={order.transferAmount}
+            transferDate={order.transferDate}
+            verifiedAt={order.verifiedAt}
+            customerName={order.user?.name || shippingAddress.firstName}
+          />
 
           {/* Daftar Barang Pesanan */}
           <div className="border rounded-xl p-6 bg-card space-y-6">

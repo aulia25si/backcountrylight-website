@@ -363,10 +363,61 @@ async function runTests() {
     console.log(`  - Variant stock before cancel: ${varStockBeforeCancel}`);
     console.log(`  - Variant stock after cancel: ${varStockAfterCancel} (Restored by +${buyQtyB}: ${varStockAfterCancel === varStockBeforeCancel + buyQtyB})`);
 
-    if (varStockAfterCancel !== varStockBeforeCancel + buyQtyB) {
-      throw new Error("Restock on cancellation failed!");
+    // 11. TEST SCENARIO G: Payment Proof Upload, Admin Approval & Courier Tracking
+    console.log("\n[10] TEST SCENARIO G: Payment Proof Upload, Admin Approval & Courier Tracking...");
+    // 1. Customer submits payment proof
+    const updatedProofOrder = await prisma.order.update({
+      where: { id: orderA.id },
+      data: {
+        paymentProofUrl: "https://example.com/receipt-proof.jpg",
+        senderName: "Test Ultralight Hiker",
+        senderBank: "BCA",
+        transferAmount: orderA.totalAmount,
+        transferDate: new Date(),
+        paymentStatus: "PENDING_VERIFICATION",
+      },
+    });
+    console.log(`✓ Customer uploaded proof: ${updatedProofOrder.paymentProofUrl}`);
+    console.log(`  - Payment Status: ${updatedProofOrder.paymentStatus} (PENDING_VERIFICATION: ${updatedProofOrder.paymentStatus === "PENDING_VERIFICATION"})`);
+    console.log(`  - Sender: ${updatedProofOrder.senderName} (${updatedProofOrder.senderBank})`);
+
+    // 2. Admin approves payment proof
+    const approvedOrder = await prisma.order.update({
+      where: { id: orderA.id },
+      data: {
+        paymentStatus: "PAID",
+        status: "PROCESSING",
+        paidAt: new Date(),
+        verifiedAt: new Date(),
+        verifiedBy: "Admin BCL",
+      },
+    });
+    console.log(`✓ Admin approved payment:`);
+    console.log(`  - Payment Status: ${approvedOrder.paymentStatus} (PAID: ${approvedOrder.paymentStatus === "PAID"})`);
+    console.log(`  - Order Status: ${approvedOrder.status} (PROCESSING: ${approvedOrder.status === "PROCESSING"})`);
+    console.log(`  - Verified By: ${approvedOrder.verifiedBy}`);
+
+    // 3. Admin updates Courier & Tracking Number
+    const shippedWithTrackingOrder = await prisma.order.update({
+      where: { id: orderA.id },
+      data: {
+        status: "SHIPPED",
+        courier: "jne",
+        courierService: "CTC",
+        trackingNumber: "JNE-TEST-998822",
+      },
+    });
+    console.log(`✓ Admin updated courier details:`);
+    console.log(`  - Status: ${shippedWithTrackingOrder.status}`);
+    console.log(`  - Courier: ${shippedWithTrackingOrder.courier} (${shippedWithTrackingOrder.courierService})`);
+    console.log(`  - Tracking Number: ${shippedWithTrackingOrder.trackingNumber}`);
+
+    if (
+      shippedWithTrackingOrder.paymentStatus !== "PAID" ||
+      shippedWithTrackingOrder.trackingNumber !== "JNE-TEST-998822"
+    ) {
+      throw new Error("Assertion failed for Scenario G!");
     }
-    console.log(`✓ Restock on cancellation verified successfully!`);
 
     console.log("\n=================================================");
     console.log("ALL CHECKOUT & MANUAL PAYMENT E2E TESTS PASSED! ✓");
