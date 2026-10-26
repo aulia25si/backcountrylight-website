@@ -50,13 +50,27 @@ export async function createOrder(data: CreateOrderParams) {
       return { error: "Alamat pengiriman tidak ditemukan atau tidak valid." };
     }
 
-    // 2. Transaksi Database Atomik (Validasi Stok & Harga Server-Side, Decrement Stok, Create Order)
+    // 2. Transaksi Database Atomik (Validasi Stok & Harga Server-Side, Cek Diskon Membership, Decrement Stok, Create Order)
     const newOrder = await prisma.$transaction(async (tx) => {
+      // Periksa apakah user memiliki membership aktif (valid di server)
+      const now = new Date();
+      const activeMembership = await tx.membership.findFirst({
+        where: {
+          userId: session.user.id,
+          status: "ACTIVE",
+          expiresAt: { gt: now },
+        },
+      });
+
+      const membershipDiscountPct = activeMembership?.discountPct || 0;
+
       let subtotal = 0;
       const verifiedItems: {
         productId: string;
         variantId: string | null;
         quantity: number;
+        originalPrice: number;
+        discountPct: number;
         unitPrice: number;
         productName: string;
         variantName?: string | null;
@@ -87,8 +101,13 @@ export async function createOrder(data: CreateOrderParams) {
             throw new Error(`Stok untuk "${product.name} (${variant.name})" tidak mencukupi (Sisa: ${variant.stock}).`);
           }
 
-          // Harga varian (fallback ke harga base jika variant.price null)
-          const unitPrice = variant.price != null && variant.price > 0 ? variant.price : product.price;
+          // Harga varian asli
+          const originalPrice = variant.price != null && variant.price > 0 ? variant.price : product.price;
+          // Hitung harga setelah diskon membership (hanya pada produk, bukan ongkir)
+          const unitPrice = membershipDiscountPct > 0 
+            ? Math.round(originalPrice * (1 - membershipDiscountPct / 100))
+            : originalPrice;
+            
           subtotal += unitPrice * item.quantity;
 
           // Pengurangan stok varian secara atomik & bersyarat untuk mencegah overselling
@@ -118,13 +137,14 @@ export async function createOrder(data: CreateOrderParams) {
             productId: product.id,
             variantId: variant.id,
             quantity: item.quantity,
+            originalPrice,
+            discountPct: membershipDiscountPct,
             unitPrice,
             productName: product.name,
             variantName: variant.name,
           });
         } else {
           // Kasus 2: Produk tanpa varian
-          // Jika produk sebenarnya memiliki varian terdaftar, tolak checkout tanpa varian
           if (product.variants.length > 0) {
             throw new Error(`Silakan pilih opsi varian untuk produk "${product.name}".`);
           }
@@ -133,7 +153,11 @@ export async function createOrder(data: CreateOrderParams) {
             throw new Error(`Stok untuk "${product.name}" tidak mencukupi (Sisa: ${product.stock}).`);
           }
 
-          const unitPrice = product.price;
+          const originalPrice = product.price;
+          const unitPrice = membershipDiscountPct > 0 
+            ? Math.round(originalPrice * (1 - membershipDiscountPct / 100))
+            : originalPrice;
+
           subtotal += unitPrice * item.quantity;
 
           // Pengurangan stok produk secara atomik & bersyarat
@@ -155,13 +179,15 @@ export async function createOrder(data: CreateOrderParams) {
             productId: product.id,
             variantId: null,
             quantity: item.quantity,
+            originalPrice,
+            discountPct: membershipDiscountPct,
             unitPrice,
             productName: product.name,
           });
         }
       }
 
-      // Hitung biaya pengiriman flat sesuai aturan proyek
+      // Hitung biaya pengiriman flat sesuai aturan proyek (diskon tidak berlaku untuk ongkos kirim)
       const shippingFee = subtotal > 0 ? PAYMENT_CONFIG.flatShippingFee : 0;
       const totalAmount = subtotal + shippingFee;
 
@@ -179,6 +205,8 @@ export async function createOrder(data: CreateOrderParams) {
             city: address.city,
             postalCode: address.postalCode,
             shippingFee,
+            membershipTier: activeMembership?.tierType || null,
+            membershipDiscountPct: membershipDiscountPct,
           },
           items: {
             create: verifiedItems.map((vi) => ({
@@ -186,6 +214,8 @@ export async function createOrder(data: CreateOrderParams) {
               variantId: vi.variantId,
               quantity: vi.quantity,
               price: vi.unitPrice,
+              originalPrice: vi.originalPrice,
+              discountPct: vi.discountPct,
             })),
           },
         },

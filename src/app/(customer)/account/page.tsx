@@ -6,6 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { PackageX, ExternalLink, Clock, PackageCheck, Truck, CheckCircle, XCircle } from "lucide-react";
 import { formatRupiah } from "@/lib/utils";
+import { getCurrentUserMembership } from "@/app/actions/membership";
+import { MembershipStatusBanner } from "@/components/account/MembershipStatusBanner";
 
 export const metadata = {
   title: "My Orders | Backcountry Light",
@@ -29,6 +31,8 @@ export default async function AccountPage() {
     },
     orderBy: { createdAt: 'desc' }
   });
+
+  const { membership, activeOrder } = await getCurrentUserMembership();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -73,6 +77,9 @@ export default async function AccountPage() {
 
   return (
     <div className="space-y-6">
+      {/* Banner Ringkasan Membership Partner */}
+      <MembershipStatusBanner membership={membership} activeOrder={activeOrder} />
+
       <div>
         <h1 className="text-2xl font-heading font-semibold tracking-tight">Riwayat Pesanan</h1>
         <p className="text-muted-foreground text-sm mt-1">Pantau status transaksi dan instruksi pembayaran Anda.</p>

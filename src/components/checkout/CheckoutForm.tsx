@@ -25,10 +25,16 @@ interface Address {
 
 export function CheckoutForm({ 
   addresses, 
-  email 
+  email,
+  membership = null,
 }: { 
   addresses: Address[], 
-  email: string 
+  email: string,
+  membership?: {
+    tierType: string;
+    tierName: string;
+    discountPct: number;
+  } | null;
 }) {
   const router = useRouter();
   const { items, getTotalPrice, clearCart } = useCartStore();
@@ -44,8 +50,12 @@ export function CheckoutForm({
 
   const selectedAddress = addresses.find(a => a.id === selectedAddressId);
   const subtotal = getTotalPrice();
+  const discountAmount = membership && membership.discountPct > 0 
+    ? Math.round(subtotal * (membership.discountPct / 100))
+    : 0;
+  const subtotalAfterDiscount = subtotal - discountAmount;
   const shipping = subtotal > 0 ? PAYMENT_CONFIG.flatShippingFee : 0;
-  const total = subtotal + shipping;
+  const total = subtotalAfterDiscount + shipping;
 
   const handlePlaceOrder = async () => {
     if (isSubmitting) return;
@@ -218,6 +228,12 @@ export function CheckoutForm({
               <span className="text-muted-foreground">Subtotal Barang</span>
               <span>{formatRupiah(subtotal)}</span>
             </div>
+            {membership && membership.discountPct > 0 && (
+              <div className="flex justify-between text-emerald-700 font-medium">
+                <span>Diskon Membership ({membership.tierName} -{membership.discountPct}%)</span>
+                <span>-{formatRupiah(discountAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Ongkos Kirim (Flat)</span>
               <span>{formatRupiah(shipping)}</span>

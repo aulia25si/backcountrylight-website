@@ -24,6 +24,16 @@ export default async function CheckoutPage() {
     ]
   });
 
+  // Ambil membership aktif jika ada untuk estimasi UI checkout
+  const activeMembership = await prisma.membership.findFirst({
+    where: {
+      userId: session.user.id,
+      status: "ACTIVE",
+      expiresAt: { gt: new Date() },
+    },
+    include: { tier: true },
+  });
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 max-w-7xl">
       <h1 className="text-3xl font-heading font-medium mb-10">Checkout</h1>
@@ -31,6 +41,11 @@ export default async function CheckoutPage() {
       <CheckoutForm 
         addresses={addresses} 
         email={session.user.email || ""} 
+        membership={activeMembership ? {
+          tierType: activeMembership.tierType,
+          tierName: activeMembership.tier.name,
+          discountPct: activeMembership.discountPct,
+        } : null}
       />
     </div>
   );

@@ -35,6 +35,9 @@ model User {
   sessions      Session[]
   orders        Order[]
   addresses     Address[]
+  memberships   Membership[]
+  membershipOrders MembershipOrder[]
+  auditLogs     MembershipAuditLog[]
 }
 
 model Account {
@@ -170,7 +173,9 @@ model OrderItem {
   variantId String?
   variant   ProductVariant? @relation(fields: [variantId], references: [id])
   quantity  Int
-  price     Int     // Snapshot of price at the time of purchase
+  price     Int     // Snapshot of final price at the time of purchase
+  originalPrice Int?  // Snapshot of original unit price before discount
+  discountPct   Int?  // Snapshot of membership discount % applied
 }
 
 enum OrderStatus {
@@ -216,3 +221,108 @@ model ProductVariant {
   
   orderItems  OrderItem[]
 }
+
+enum MembershipTierType {
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+model MembershipTier {
+  id           String             @id @default(cuid())
+  type         MembershipTierType @unique
+  name         String
+  discountPct  Int                // e.g. 10 for Silver, 15 for Gold, 20 for Platinum
+  price        Int                // Biaya membership dlm IDR
+  durationDays Int                // Masa berlaku (e.g. 365)
+  description  String?            @db.Text
+  benefits     String[]           @default([])
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  memberships  Membership[]
+  orders       MembershipOrder[]
+}
+
+model Membership {
+  id           String             @id @default(cuid())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tierType     MembershipTierType
+  tier         MembershipTier     @relation(fields: [tierType], references: [type])
+  status       MembershipStatus   @default(PENDING)
+  discountPct  Int                // Snapshot discount %
+  startDate    DateTime?
+  expiresAt    DateTime?
+  
+  businessName String?
+  businessType String?            // e.g. Reseller / Dropshipper
+  phoneNumber  String?
+
+  adminNotes   String?            @db.Text
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  orders       MembershipOrder[]
+  auditLogs    MembershipAuditLog[]
+
+  @@index([userId, status])
+}
+
+model MembershipOrder {
+  id              String             @id @default(cuid())
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membershipId    String?
+  membership      Membership?        @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  tierType        MembershipTierType
+  tier            MembershipTier     @relation(fields: [tierType], references: [type])
+  
+  amount          Int                // Harga membership saat order dibuat
+  durationDays    Int                // Snapshot durasi
+  isRenewal       Boolean            @default(false)
+
+  // Payment Status & Method (Manual Bank Transfer)
+  paymentStatus   PaymentStatus      @default(UNPAID)
+  paymentMethod   String             @default("MANUAL_BANK_TRANSFER")
+  paidAt          DateTime?
+
+  // Bukti Transfer
+  paymentProofUrl String?
+  senderName      String?
+  senderBank      String?
+  transferAmount  Int?
+  transferDate    DateTime?
+  verifiedAt      DateTime?
+  verifiedBy      String?
+  rejectionReason String?
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  auditLogs       MembershipAuditLog[]
+
+  @@index([userId, paymentStatus])
+}
+
+model MembershipAuditLog {
+  id                String           @id @default(cuid())
+  membershipId      String?
+  membership        Membership?      @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+  membershipOrderId String?
+  membershipOrder   MembershipOrder? @relation(fields: [membershipOrderId], references: [id], onDelete: SetNull)
+  adminId           String?
+  admin             User?            @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  
+  action            String           // e.g. "MANUAL_ASSIGN", "APPROVE_PAYMENT", "REJECT_PAYMENT", "CHANGE_TIER", "EXTEND_EXPIRY", "REVOKE"
+  details           String?          @db.Text
+  createdAt         DateTime         @default(now())
+}
+

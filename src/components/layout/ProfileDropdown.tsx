@@ -1,6 +1,6 @@
 "use client";
 
-import { User, LogOut, Settings, Package, Shield, Heart, MapPin } from "lucide-react";
+import { User, LogOut, Settings, Package, Shield, Heart, MapPin, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -58,6 +58,10 @@ export function ProfileDropdown({ session }: { session: any }) {
         <DropdownMenuItem render={<Link href="/account" />}>
           <Package className="mr-2 h-4 w-4" />
           <span>My Orders</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem render={<Link href="/membership" />}>
+          <Award className="mr-2 h-4 w-4 text-amber-500" />
+          <span className="font-medium">Membership Partner</span>
         </DropdownMenuItem>
         <DropdownMenuItem render={<Link href="/account/wishlist" />}>
           <Heart className="mr-2 h-4 w-4" />

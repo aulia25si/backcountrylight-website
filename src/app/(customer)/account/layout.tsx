@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Package, Heart, Settings, User, MapPin } from "lucide-react";
+import { Package, Heart, Settings, User, MapPin, Award } from "lucide-react";
 
 export default async function AccountLayout({
   children,
@@ -39,6 +39,13 @@ export default async function AccountLayout({
             >
               <Package className="h-4 w-4" />
               My Orders
+            </Link>
+            <Link 
+              href="/membership" 
+              className="flex items-center gap-3 px-4 py-3 rounded-md hover:bg-muted transition-colors text-sm font-medium text-amber-600 dark:text-amber-500"
+            >
+              <Award className="h-4 w-4" />
+              Membership Partner
             </Link>
             <Link 
               href="/account/wishlist" 

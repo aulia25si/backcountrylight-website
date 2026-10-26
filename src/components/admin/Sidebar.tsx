@@ -12,7 +12,8 @@ import {
   Store,
   ShoppingCart,
   MessageSquare,
-  Ticket
+  Ticket,
+  Award
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOut } from "next-auth/react";
@@ -23,6 +24,7 @@ const navigation = [
   { name: "Categories", href: "/admin/categories", icon: LayoutList },
   { name: "Brands", href: "/admin/brands", icon: Tags },
   { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
+  { name: "Membership", href: "/admin/membership", icon: Award },
   { name: "Customers", href: "/admin/users", icon: Users },
   { name: "Contact Messages", href: "/admin/messages", icon: MessageSquare, disabled: true },
   { name: "Referral Codes", href: "/admin/referrals", icon: Ticket, disabled: true },

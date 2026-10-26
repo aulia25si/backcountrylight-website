@@ -54,6 +54,66 @@ async function main() {
   }
   console.log('Created initial brands.');
 
+  // 4. Create Initial Membership Tiers
+  const tiers = [
+    {
+      type: 'SILVER',
+      name: 'Silver Partner',
+      discountPct: 10,
+      price: 250000,
+      durationDays: 365,
+      description: 'Tier ideal untuk dropshipper pemula atau reseller volume awal.',
+      benefits: [
+        'Diskon 10% untuk seluruh produk & varian BCL',
+        'Masa aktif 1 tahun (365 hari)',
+        'Dukungan katalog digital untuk dropshipping',
+        'Prioritas pengiriman pesanan'
+      ]
+    },
+    {
+      type: 'GOLD',
+      name: 'Gold Partner',
+      discountPct: 15,
+      price: 500000,
+      durationDays: 365,
+      description: 'Tier paling populer untuk reseller aktif dengan volume penjualan rutin.',
+      benefits: [
+        'Diskon 15% untuk seluruh produk & varian BCL',
+        'Masa aktif 1 tahun (365 hari)',
+        'Akses stok awal untuk produk rilis baru',
+        'Dukungan konsultasi produk ultralight',
+        'Badge mitra terverifikasi'
+      ]
+    },
+    {
+      type: 'PLATINUM',
+      name: 'Platinum Partner',
+      discountPct: 20,
+      price: 1000000,
+      durationDays: 365,
+      description: 'Tier eksklusif untuk distributor dan toko outdoor dengan margin maksimal.',
+      benefits: [
+        'Diskon 20% untuk seluruh produk & varian BCL',
+        'Masa aktif 1 tahun (365 hari)',
+        'Dedicated customer service & prioritas fulfillment',
+        'Akses pre-order kuota khusus sebelum publik',
+        'Materi pemasaran & aset resolusi tinggi'
+      ]
+    }
+  ];
+
+  for (const tier of tiers) {
+    await prisma.membershipTier.upsert({
+      where: { type: tier.type },
+      update: {
+        name: tier.name,
+        discountPct: tier.discountPct,
+      },
+      create: tier,
+    });
+  }
+  console.log('Created/updated initial membership tiers.');
+
   console.log('Seeding finished.');
 }
 
